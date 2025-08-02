@@ -1,15 +1,22 @@
-name: Auto-merge on approval
+name: Auto Merge to UAT from Jira
 
 on:
-  pull_request_review:
-    types: [submitted]
+  repository_dispatch:
+    types: [jira-submitted]
 
 jobs:
-  automerge:
-    if: github.event.review.state == 'approved'
+  merge-branch:
     runs-on: ubuntu-latest
     steps:
-      - name: Merge PR
-        uses: devops-infra/action-pull-request-merge@v0.5.0
+      - name: Checkout UAT branch
+        uses: actions/checkout@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          ref: UAT
+
+      - name: Merge from source branch
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git fetch origin ${{ github.event.client_payload.source_branch }}
+          git merge origin/${{ github.event.client_payload.source_branch }} --no-ff -m "Auto-merged from Jira status change"
+          git push origin UAT
